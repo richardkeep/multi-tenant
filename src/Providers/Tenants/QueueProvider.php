@@ -17,7 +17,6 @@ namespace Hyn\Tenancy\Providers\Tenants;
 use Hyn\Tenancy\Contracts\Repositories\WebsiteRepository;
 use Hyn\Tenancy\Environment;
 use Illuminate\Queue\Events\JobProcessing;
-use Illuminate\Queue\QueueManager;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Arr;
 use Hyn\Tenancy\Queue\DispatcherMiddleware;
@@ -27,20 +26,14 @@ class QueueProvider extends ServiceProvider
 {
     public function boot()
     {
-        $this->app->booted(function () {
-            $this->app->extend('queue', function (QueueManager $queue) {
-                $queue->createPayloadUsing(function (string $connection, string $queue = null, array $payload = []) {
-                    /** @var Environment $environment */
-                    $environment = resolve(Environment::class);
+        $this->app['queue']->createPayloadUsing(function (string $connection, string $queue = null, array $payload = []) {
+            /** @var Environment $environment */
+            $environment = resolve(Environment::class);
 
-                    /** @var mixed|null $website_id */
-                    $website_id = Arr::get($payload, 'data.command')->website_id ?? optional($environment->tenant())->getKey();
+            /** @var mixed|null $website_id */
+            $website_id = Arr::get($payload, 'data.command')->website_id ?? optional($environment->tenant())->getKey();
 
-                    return ['website_id' => $website_id];
-                });
-
-                return $queue;
-            });
+            return ['website_id' => $website_id];
         });
 
         $this->app['events']->listen(JobProcessing::class, function ($event) {
